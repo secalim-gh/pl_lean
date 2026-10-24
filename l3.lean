@@ -458,7 +458,22 @@ definition usually leads to a clearer proof.
 
 theorem mulN_addN_distrib_left_by_first_arg (a b c : Nat) :
     mulN a (addN b c) = addN (mulN a b) (mulN a c) := by
-  sorry
+  induction a with
+  | zero => cases c with
+    | zero => rfl
+    | succ c' =>
+      simp [addN_succ_right]
+      simp [mulN_succ_right]
+      simp [addN_zero]
+      simp [mulN_zero_left]
+      rfl
+
+  | succ k ih =>
+    simp [mulN_succ_left]
+    rw [ih]
+    simp [addN_assoc]
+    simp [addN_comm]
+    simp [addN_assoc]
 
 
 /-
@@ -722,7 +737,7 @@ Hint: by induction on `n`.
 
 theorem isEven_doubleN (n: Nat) : isEven (doubleN n) := by
   induction n with
-  | zero => sorry
+  | zero => rfl
   | succ k ih =>
     rw [doubleN]
     rw [addN_succ_right, addN_succ_left]
@@ -812,15 +827,20 @@ inductive BExpConn where
 /-
 __Exercise (difficulty 1/4):__ Define the evaluation function for `BExpConn`.
 -/
-def evalBExpConn : BExpConn → Bool := sorry
+def evalBExpConn : BExpConn → Bool
+  | BExpConn.btrue => true
+  | BExpConn.bnot e => ! (evalBExpConn e)
+  | BExpConn.band e e' => (evalBExpConn e) && (evalBExpConn e')
+  | BExpConn.bor e e' => (evalBExpConn e) || (evalBExpConn e')
+
 
 example :
     let ex0 := .band (.bor (.bnot .btrue) .btrue) .btrue
-    evalBExpConn ex0 = true := by sorry
+    evalBExpConn ex0 = true := by rfl
 
 example :
     let ex1 := .band (.bor (.bnot .btrue) .btrue) (.bnot .btrue)
-    evalBExpConn ex1 = false := by sorry
+    evalBExpConn ex1 = false := by rfl
 
 /-
 Every connective can be expressed with a conditional:
@@ -833,18 +853,22 @@ __Exercise (difficulty 2/4):__ Define a function `bexpconn_to_bexp` that transla
 `BExpConn` terms into `BExp` terms, following the intuition above.
 -/
 
-def bexpconn_to_bexp : BExpConn → BExp := sorry
+def bexpconn_to_bexp : BExpConn → BExp
+  | BExpConn.btrue => BExp.btrue
+  | BExpConn.bnot e => BExp.bifte (bexpconn_to_bexp e) BExp.bfalse BExp.btrue
+  | BExpConn.band e e' => BExp.bifte (bexpconn_to_bexp e) (bexpconn_to_bexp e') BExp.bfalse
+  | BExpConn.bor e e' => BExp.bifte (bexpconn_to_bexp e)  BExp.btrue (bexpconn_to_bexp e')
 
 
 -- __Exercise (difficulty 1/4):__ Test the translation on the two examples above.
 
 example :
     let ex0 := .band (.bor (.bnot .btrue) .btrue) .btrue
-    evalBExpConn ex0 = evalBExp (bexpconn_to_bexp ex0) := by sorry
+    evalBExpConn ex0 = evalBExp (bexpconn_to_bexp ex0) := by rfl
 
 example :
     let ex1 := .band (.bor (.bnot .btrue) .btrue) (.bnot .btrue)
-    evalBExpConn ex1 = evalBExp (bexpconn_to_bexp ex1) := by sorry
+    evalBExpConn ex1 = evalBExp (bexpconn_to_bexp ex1) := by rfl
 
 /-
 __Exercise (difficulty 3/4):__ Prove that the translation preserves the meaning:
@@ -859,7 +883,23 @@ equation for `e`, allowing the surrounding conditional to compute.
 -/
 
 theorem bexpconn_equiv_bexp (t : BExpConn) : evalBExpConn t = evalBExp (bexpconn_to_bexp t) := by
-  sorry
+  induction t with
+  | btrue => rfl
+  | bnot b ih =>
+    rw [evalBExpConn]
+    simp [bexpconn_to_bexp]
+    rw [ih]
+    simp [evalBExp]
+  | band e e' ih ih' =>
+    rw [evalBExpConn]
+    simp [bexpconn_to_bexp]
+    rw [ih, ih']
+    simp [evalBExp]
+  | bor e e' ih ih' =>
+    rw [evalBExpConn]
+    simp [bexpconn_to_bexp]
+    rw [ih, ih']
+    simp [evalBExp]
 
 end Exercises
 
