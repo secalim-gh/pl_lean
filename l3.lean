@@ -293,7 +293,7 @@ This does not require induction.  Use `addN_succ_right` and `addN_succ_left`.
 -/
 
 theorem addN_self_succ (n : Nat) : addN (n + 1) (n + 1) = addN n n + 1 + 1 := by
-  rw [addN_succ_right]
+  simp [addN]
   rw [addN_succ_left]
 
 /-
@@ -311,11 +311,8 @@ theorem addN_assoc (n m k : Nat) : addN (addN n m) k = addN n (addN m k) := by
   induction k with
   | zero => rfl
   | succ k' ih =>
-    rw [addN_succ_right]
-    rw [addN_succ_right]
-    rw [addN_succ_right]
-    rw [ih]
-
+    simp [addN]
+    exact ih
 
 /-
 ### Exercise: Zero is left-absorbing for mulN
@@ -329,15 +326,12 @@ holds by computation.
 -/
 
 theorem mulN_zero_left (n : Nat) : mulN 0 n = 0 := by
-  have mul_comm (m : Nat) : mulN m 0 = mulN 0 m := by
-    induction m with
-    | zero => rfl
-    | succ m' ih =>
-      rw [mulN_zero_right]
-      rw [mulN_zero_right] at ih
-      exact ih
-  rw [<- mul_comm]
-  rfl
+  induction n with
+  | zero => rfl
+  | succ m ih =>
+    simp [mulN]
+    rw [addN_zero]
+    exact ih
 
 /-
 ### Exercise: One is left-identity for mulN
@@ -355,11 +349,10 @@ hypothesis.  The remaining equality follows by computation.
 theorem mulN_one_left (n : Nat) : mulN 1 n = n := by
   induction n with
   | zero => rfl
-  | succ n' ih =>
-    rw [mulN_succ_right]
+  | succ k ih =>
+    rw [mulN]
     rw [ih]
     rfl
-
 
 /-
 ### Exercise: Multiplication of a successor (left)
@@ -396,15 +389,13 @@ Infoview.  The proof has three phases.
 theorem mulN_succ_left (n m : Nat) : mulN (n + 1) m = addN (mulN n m) m := by
   induction m with
   | zero => rfl
-  | succ m' ih =>
-    rw [mulN_succ_right]
-    rw [mulN_succ_right]
+  | succ k ih =>
+    simp [mulN_succ_right]
     rw [ih]
-    rw [addN_succ_right]
-    rw [addN_succ_right]
-    rw [addN_assoc, addN_assoc]
-    rw [addN_comm n m']
-
+    simp [addN]
+    rw [addN_assoc]
+    rw [addN_assoc]
+    rw [addN_comm n k]
 
 
 /-
@@ -418,15 +409,14 @@ Hint: in the inductive case, exploit `mulN_succ_right` and `mulN_succ_left`.
 -/
 
 theorem mulN_comm (n m : Nat) : mulN n m = mulN m n := by
-  induction n with
-  | zero => cases m with
-    | zero => rfl
-    | succ => rw [mulN_zero_right, mulN_zero_left]
-  | succ n' ih =>
+  induction m with
+  | zero =>
+    rw [mulN_zero_left]
+    rfl
+  | succ m' ih =>
     rw [mulN_succ_right]
-    rw [mulN_succ_left]
     rw [ih]
-
+    rw [mulN_succ_left]
 
 /-
 ### Exercise: Multiplication distributes over addition (left)
@@ -450,15 +440,10 @@ and `mulN` can then unfold.  So the natural choice is induction on `c`.
 theorem mulN_addN_distrib_left (a b c : Nat) : mulN a (addN b c) = addN (mulN a b) (mulN a c) := by
   induction c with
   | zero => rfl
-  | succ c' ih =>
-    rw [addN_succ_right]
-    rw [mulN_succ_right]
-    rw [mulN_succ_right]
+  | succ k ih =>
+    rw [addN_succ_right, mulN_succ_right, mulN_succ_right]
     rw [ih]
     rw [addN_assoc]
-
-
-
 
 /-
 #### Optional challenge: choose a less convenient induction variable
@@ -473,21 +458,7 @@ definition usually leads to a clearer proof.
 
 theorem mulN_addN_distrib_left_by_first_arg (a b c : Nat) :
     mulN a (addN b c) = addN (mulN a b) (mulN a c) := by
-  induction a with
-  | zero =>
-    rw [mulN_zero_left, mulN_zero_left, mulN_zero_left]
-    rfl
-  | succ a' ih =>
-    have swap : ∀ x y z : Nat, addN x (addN y z) = addN y (addN x z) := by
-      intros x y z
-      rw [← addN_assoc x y z, addN_comm x y, addN_assoc y x z]
-    rw [mulN_succ_left, mulN_succ_left, mulN_succ_left]
-    rw [ih]
-    rw [addN_assoc]
-    rw [addN_assoc]
-    rw [swap (mulN a' c) b c]
-
-
+  sorry
 
 
 /-
@@ -502,15 +473,13 @@ Hint: in the inductive case, exploit `mulN_addN_distrib_left`.
 
 theorem mulN_assoc (n m k : Nat) : mulN (mulN n m) k = mulN n (mulN m k) := by
   induction k with
-  | zero =>
-    rw [mulN_zero_right]
-    rw [mulN_zero_right]
-    rw [mulN_zero_right]
+  | zero => rfl
   | succ k' ih =>
     rw [mulN_succ_right]
     rw [mulN_succ_right]
-    rw [mulN_addN_distrib_left]
     rw [ih]
+    rw [mulN_addN_distrib_left]
+
 
 /-
 ### Exercise: Reflexivity of eqN
@@ -524,7 +493,9 @@ Prove that `eqN` is reflexive.  Hint: proceed by induction on `a`, and use the
 theorem eqN_refl (a : Nat) : eqN a a = true := by
   induction a with
   | zero => rfl
-  | succ b ih => exact ih
+  | succ n ih =>
+    simp [eqN]
+    exact ih
 
 
 /-
@@ -545,8 +516,124 @@ def leN : Nat → Nat → Bool
 theorem leN_refl (n : Nat) : leN n n = true := by
   induction n with
   | zero => rfl
-  | succ m ih => exact ih
+  | succ k ih =>
+    simp [leN]
+    exact ih
 
+
+/-
+### Guided example: induction with generalizing
+
+This guided example introduces a variant of the `induction` tactic
+that often arises when dealing with multiple induction candidates.
+
+We'd like to prove that the less than or equal relation between two natural
+numbers is preserved by incrementing the right term:
+-/
+
+theorem leN_succ_right_sorry (a b : Nat) :
+  leN a b = true → leN a (b + 1) = true := by
+
+/-
+The proof is more delicate than the others with standard induction as it
+requires the notion of _generalizing_ a variable.
+
+A side-effect of declaring the arguments of `a` and `b` on the left side
+of the colon `:` is that they're already introduced in the proof context,
+forcing us to work with fixed values for both for the rest of the proof.
+
+To see why it matters, let's try proceeding naively by inducting on `a`:
+-/
+  intro h
+  induction a with
+  | zero => rfl
+  | succ a' ih => cases b with
+    | zero => cases h
+    | succ b' =>
+      rw [leN];
+      rw [leN] at h
+      sorry
+
+/-
+Here we get stuck (look at the proof context with the cursor on `sorry`).
+
+After simplifying the definition of `leN`, we have a proof of
+`h : leN a' b' = true` which almost matches the premise of the
+inductive hypothesis if not for the second argument, which became
+`b' + 1` after doing case analysis on `b`.
+
+The inductive hypothesis is too weak to prove our goal: it should hold for any
+value as the second argument of `leN` and not just the `b` that was fixed at
+the beginning of the proof. What's worse, doing case analysis on `b` specialized
+the inductive hypothesis even more.
+
+What we need to complete the proof is an inductive hypothesis that works
+for any natural number `b`. Let's scratch the previous naive attempt and
+start a new one.
+
+We can ask Lean to produce such a stronger inductive hypothesis that is
+universally quantified on `b` by writing `induction a generalizing b` before
+the `with` keyword.
+
+In the proof below, move the cursor after the arrow of the inductive case.
+Notice the inductive hypothesis now has `∀ (b : Nat)`, meaning it works
+for any natural number as the second operand of `leN`, while the first
+operand `a'` remains fixed.
+
+After doing case analysis on `b` and simplifying the definition of `leN`, we
+can finally apply the proof `h : leN a' b' = true` to the IH, instantiating its
+`b` parameter with `b'`, which will give us the goal.
+
+Therefore, `exact ih b' h` closes the proof.
+-/
+theorem leN_succ_right (a b : Nat) : leN a b = true → leN a (b + 1) = true := by
+  intro h
+  induction a generalizing b with
+  | zero => rfl
+  | succ a' ih => cases b with
+    | zero => cases h
+    | succ b' =>
+      rw [leN];
+      rw [leN] at h;
+      exact ih b' h
+
+/-
+By the way, an equivalent theorem is available in Lean's standard library
+under the name `Nat.le_succ_of_le`.
+-/
+
+#print Nat.le_succ_of_le
+
+
+/-
+### Exercise: Interplay of leN and successor: left increment
+
+**Difficulty: 3/4 (induction with generalize).**
+
+Prove that the less than or equal relation between two natural numbers is also
+preserved by incrementing the left term, or, equivalently, if `a` is strictly
+less than `b` then it is also less than or equal to `b`.
+
+In Lean's standard library this is known as `Nat.le_of_succ_le`.
+
+Hint: induction on `b` generalizing `a`. In the inductive case,
+do case-analysis on `a`.
+-/
+theorem leN_succ_left (a b : Nat) : leN (a + 1) b = true → leN a b = true := by
+  intro h
+  induction b generalizing a with
+  | zero =>
+    rw [leN_eq_eqN_zero]
+    rw [leN_eq_eqN_zero] at h
+    cases h
+  | succ k ih =>
+    cases a with
+      | zero =>
+        simp [leN]
+      | succ a' =>
+        rw [leN]
+        rw [leN] at h
+        exact ih a' h
 
 /-
 ### Exercise: Antisymmetricity of leN
@@ -559,26 +646,31 @@ Hint: do `intro n` first, then induct on `n`, so that `m` stays quantified in
 the induction hypothesis.  Then split `m` with `cases`: the mixed cases
 (`zero` with `succ`, `succ` with `zero`) have a false hypothesis.
 In the `succ`, `succ` case, use the induction hypothesis.
+
+Note that you don't need to generalize `m` if you intro and induct on `n`
+immediately as recommended, because the proposition has `m` universally
+quantified.
 -/
 
 theorem leN_antisymm : ∀ n m, leN n m → leN m n → eqN n m := by
   intro n
   induction n with
   | zero =>
-    intros m h h2
+    intros m h h1
     cases m with
-    | zero => exact h
-    | succ m' => cases h2
-  | succ n' ih =>
-    intros m h h2
+    | zero => rfl
+    | succ m' => cases h1
+  | succ k ih =>
+    intro m
+    intros h h1
     cases m with
-      | zero => cases h
-      | succ k =>
-        rw [leN] at h h2
-        rw [eqN]
-        rw [ih]
-        exact h
-        exact h2
+    | zero =>
+      simp [eqN]
+      cases h
+    | succ m' =>
+      rw [eqN.eq_4]
+      exact ih m' h h1
+
 
 /-
 ### Exercise: Subtracting a number from itself
@@ -602,6 +694,7 @@ theorem subN_self (n : Nat) : subN n n = 0 := by
     rw [subN]
     exact ih
 
+
 /-
 ### Exercise: Alternative characterization of even (n + 1)
 
@@ -613,12 +706,10 @@ Hint: `simp` knows that `!` is involutive.
 
 theorem isEven_succ (n: Nat) : isEven (n+1) = !(isEven n) := by
   induction n with
-  | zero => simp [isEven]
+  | zero => rfl
   | succ k ih =>
-    rw [isEven_succ] at ih
-    simp [isEven]
-    rw [isEven_succ]
     rw [ih]
+    simp [isEven]
 
 
 /-
@@ -630,7 +721,14 @@ Hint: by induction on `n`.
 -/
 
 theorem isEven_doubleN (n: Nat) : isEven (doubleN n) := by
-  sorry
+  induction n with
+  | zero => sorry
+  | succ k ih =>
+    rw [doubleN]
+    rw [addN_succ_right, addN_succ_left]
+    rw [<- doubleN]
+    rw [<- ih]
+    rfl
 
 
 /-
@@ -643,8 +741,10 @@ hypothesis, `addN_succ_right`, and `addN_succ_left`.
 -/
 
 theorem doubleN_addN (n: Nat) : doubleN n = addN n n := by
-  sorry
-
+  induction n with
+  | zero => rfl
+  | succ k ih =>
+    rw [doubleN]
 
 /-
 ### Exercise: Correctness of dualBExp
@@ -663,9 +763,16 @@ After the case split, both sides compute to the same Boolean expression, so
 `rfl` finishes each case.
 -/
 
-theorem evalBExp_dual (t : BExp) :
-    evalBExp (dualBExp t) = !(evalBExp t) := by
-  sorry
+theorem evalBExp_dual (t : BExp) : evalBExp (dualBExp t) = !(evalBExp t) := by
+  induction t with
+  | btrue => rfl
+  | bfalse => rfl
+  | bifte t0 t1 t2 ih0 ih1 ih2 =>
+    simp [dualBExp]
+    simp [evalBExp]
+    rw [ih0, ih1, ih2]
+    simp
+    cases h : evalBExp t0 with rfl
 
 
 /-
@@ -800,6 +907,24 @@ inductive BinNat where
   deriving Repr
 
 /-
+In the rest of the exercise we write binary values using Lean's dot notation
+for constructors, which allows to build larger values of an inductive type by
+appending its unary constructors on the right of an existing value with a dot,
+avoiding the need to wrap nested values in parentheses.
+
+In the case of our binary numbers, it also allows to write them in the more
+natural notation where the most significant digits appear on the left.
+-/
+
+def bz := BinNat.bz           -- shorthand to avoid repeating BinNat.bz
+
+def six := bz.b1.b1.b0
+def six' := bz.b0.b0.b0.b0.b0.b1.b1.b0
+def thirteen := six.b1
+def twentyfour := six'.b0.b0
+
+
+/-
 ### Task 1: Converting binary to natural
 
 **Difficulty: 1/4 (warm-up programming).**
@@ -809,7 +934,7 @@ Write a function `binToNat` that converts a `BinNat` into a `Nat`.
 
 def binToNat : BinNat → Nat := sorry
 
-example : binToNat (.b0 (.b1 (.b1 .bz))) = 6 := by sorry
+example : binToNat bz.b1.b1.b0 = 6 := by sorry
 
 
 /-
@@ -825,7 +950,7 @@ Write a function `binIncr` that adds one *directly on numerals*, as in a binary 
 
 def binIncr : BinNat → BinNat := sorry
 
-example : binToNat (binIncr (.b0 (.b1 (.b1 .bz)))) = 7 := by sorry
+example : binToNat (binIncr bz.b1.b1.b0) = 7 := by sorry
 
 /-
 ### Task 3: Converting natural to binary
@@ -838,8 +963,8 @@ by counting up from zero.
 
 def natToBin : Nat → BinNat := sorry
 
-example : natToBin 6 = (.b0 (.b1 (.b1 .bz))) := by sorry
-example : natToBin 11 = (.b1 (.b1 (.b0 (.b1 .bz)))) := by sorry
+example : natToBin 6 = bz.b1.b1.b0 := by sorry
+example : natToBin 11 = bz.b1.b0.b1.b1 := by sorry
 
 
 /-
@@ -877,10 +1002,7 @@ converting to `Nat`.  Zero must stay `bz` (we do not want a leading zero digit):
     binDouble (b1 n) = b0 (b1 n)
 -/
 
-def binDouble : BinNat → BinNat
-  | bz => bz
-  |
-
+def binDouble : BinNat → BinNat := sorry
 
 example : binDouble .bz = .bz := by sorry
 example : binDouble (.b1 .bz) = .b0 (.b1 .bz) := by sorry
@@ -898,9 +1020,7 @@ Hint: no induction is needed.  There are three constructors, so use `cases`.
 
 theorem binToNat_binDouble (b : BinNat) :
     binToNat (binDouble b) = 2 * binToNat b := by
-  cases b with
-  | bz =>
-
+  sorry
 
 /-
 ### Task 7: Correctness of binary increment (2)
@@ -944,6 +1064,127 @@ Hint: induction on `n`.  The successor case needs `natToBin_succ`,
 -/
 
 theorem binToNat_natToBin (n : Nat) : binToNat (natToBin n) = n := by
+  sorry
+
+
+/-
+### Task 9: Normalizing a binary number
+
+**Difficulty: 4/4 overall.**
+
+The previous theorem proves that `binToNat` is a left inverse for `natToBin`.
+
+However, since `binToNat` is not injective (for example, it sends both
+`.b1 .bz` and `.b1 .b0 .bz` to the natural 1), or equivalently since `natToBin`
+is not surjective, `binToNat` is not a right inverse for `natToBin`,
+meaning the composition `natToBin ∘ binToNat` is not the identity.
+-/
+
+def normalize (b : BinNat) : BinNat := natToBin (binToNat b)
+
+/-
+It serves nonetheless as a "normalizing" function that given a binary
+number produces its canonical representation, where the number
+has been stripped of any leading zeros.
+
+Replace the `sorry`'s below with `rfl` to check that your `normalize`
+behaves correctly.
+-/
+
+example : normalize bz.b0 = bz := by sorry
+example : normalize bz.b0.b0.b0.b1 = bz.b1 := by sorry
+example : normalize six = six := by sorry
+
+example : binToNat (normalize bz.b0.b0.b0.b1) = 1 := by sorry
+example : binToNat (normalize six) = 9 := by sorry
+
+/-
+We can define a function that tests if a binary number has one or more
+leading zeros: it suffices to check for the pattern `.b0 .bz`.
+-/
+
+def hasLeadingZeros : BinNat → Bool
+| .bz => false
+| .b0 .bz => true
+| .b0 b => hasLeadingZeros b
+| .b1 b => hasLeadingZeros b
+
+example : hasLeadingZeros bz.b0 = true := by rfl
+example : hasLeadingZeros six = false := by rfl
+example : hasLeadingZeros six' = true := by rfl
+example : hasLeadingZeros bz.b0.b0.b1.b0.b0.b1.b0.b0.b1 = true := by rfl
+example : hasLeadingZeros bz.b1.b0.b0.b1.b0.b0.b1.b0.b0.b1 = false := by rfl
+
+/-
+The goal of this exercise is to prove that `normalize` actually computes
+the smallest possible representation of the binary number.
+
+First, we prove a few auxiliary theorems that'll help us arrive at the
+main result.
+-/
+
+/-
+#### Sub-task 1 - Difficulty: 2/4 (simplification).
+
+An algebraic equality between `binDouble` and `binIncr` needed for the
+next theorem.
+
+Hint: induction not necessary, simplify by the definitions `binDouble` and `binIncr`.
+-/
+theorem binIncr_binDouble (b : BinNat) :
+    binDouble (binIncr b) = binIncr (binIncr (binDouble b)) := by
+  sorry
+
+
+/-
+#### Sub-task 2 - Difficulty: 3/4 (standard induction and linear algebra).
+
+A useful equality between `binDouble` and `binToNat`: we get the same number
+by  either doubling the binary result or doubling the natural argument of
+`natToBin` with the respective operations.
+
+Hint: induct on `n`; in the inductive case simplify with `Nat.mul_succ`
+and `natToBin`, then rewrite with the IH and `binIncr_binDouble`.
+-/
+theorem binDouble_binToNat (n : Nat) :
+    binDouble (natToBin n) = natToBin (2 * n) := by
+  sorry
+
+
+/-
+#### Sub-task 3 - Difficulty: 2/4 (standard induction).
+
+Prove that your implementation of `binDouble` preserves the result of
+`hasLeadingZeros` on its argument.
+
+This will help you prove one of the inductive cases of the boss theorem.
+-/
+
+theorem binDouble_hasLeadingZeros (b : BinNat) :
+    hasLeadingZeros (binDouble b) = hasLeadingZeros b := by
+  sorry
+
+
+/-
+#### Sub-task 4 - Difficulty: 4/4 (boss challenge).
+
+Prove that `normalize` computes the smallest possible representation:
+the binary it returns does not have any leading zero.
+
+Hints:
+
+1. Induction on `b`. In both inductive cases, rewrite `binDouble_binToNat`
+   to eliminate the `2 * n` multiplication.
+
+2. In the `b0 b'` case, rewrite `binDouble_hasLeadingZeros`.
+
+3. In the `b1 b'` case, do case analysis on `normalize b'` recording the
+   equality for the constructor instance with the syntax
+   `cases eq : normalize b' with`.
+-/
+
+theorem normalize_smallest (b : BinNat) :
+    hasLeadingZeros (normalize b) = false := by
   sorry
 
 
