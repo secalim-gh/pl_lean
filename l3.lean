@@ -972,10 +972,17 @@ def twentyfour := six'.b0.b0
 Write a function `binToNat` that converts a `BinNat` into a `Nat`.
 -/
 
-def binToNat : BinNat → Nat := sorry
+def binToNat : BinNat → Nat
+  | BinNat.bz => Nat.zero
+  | BinNat.b0 b => 2 * binToNat b
+  | BinNat.b1 b => 1 + 2 * binToNat b
 
-example : binToNat bz.b1.b1.b0 = 6 := by sorry
+#eval binToNat bz.b1.b1.b0
 
+example : binToNat bz.b1.b1.b0 = 6 := by rfl
+example : binToNat bz.b0.b0.b0.b0.b0.b1.b1.b0 = 6 := by rfl
+example : binToNat six.b1 = 13 := by rfl
+example : binToNat six'.b0.b0 = 24 := by rfl
 
 /-
 ### Task 2: Incrementing a binary number
@@ -988,9 +995,19 @@ Write a function `binIncr` that adds one *directly on numerals*, as in a binary 
 * a numeral ending in `1` becomes `0` and *carries* to the rest.
 -/
 
-def binIncr : BinNat → BinNat := sorry
+def binIncr : BinNat → BinNat
+  | .bz => bz.b1
+  | .b0 b => b.b1
+  | .b1 b => (binIncr b).b0
 
-example : binToNat (binIncr bz.b1.b1.b0) = 7 := by sorry
+def bn := bz.b0.b1.b1.b0
+#eval bn
+#eval binIncr bn
+#eval binToNat bn
+#eval binToNat (binIncr bn)
+
+example : binToNat (binIncr bz.b1.b1.b0) = 7 := by rfl
+example : binToNat (binIncr bz.b1.b1) = 4 := by rfl
 
 /-
 ### Task 3: Converting natural to binary
@@ -1001,10 +1018,20 @@ Write a function `natToBin` that converts a `Nat` into a `BinNat`
 by counting up from zero.
 -/
 
-def natToBin : Nat → BinNat := sorry
+def natToBin : Nat → BinNat
+  | 0 => .bz
+  | n + 1 =>  binIncr (natToBin n)
 
-example : natToBin 6 = bz.b1.b1.b0 := by sorry
-example : natToBin 11 = bz.b1.b0.b1.b1 := by sorry
+def natToBin2 : Nat → BinNat
+  | 0 => .bz
+  | n + 1 =>
+    let m := (n + 1) / 2
+    if (n + 1) % 2 == 0 then (natToBin m).b0 else (natToBin m).b1
+
+#eval binToNat (natToBin 6)
+#eval natToBin 6
+example : natToBin 6 = bz.b1.b1.b0 := by rfl
+example : natToBin 11 = bz.b1.b0.b1.b1 := by rfl
 
 
 /-
@@ -1026,7 +1053,7 @@ Prove that the diagram *commutes*, that is the two paths to b' are equivalent.
 -/
 
 theorem natToBin_succ (n : Nat) : natToBin (n + 1) = binIncr (natToBin n) := by
-  sorry
+  rfl
 
 
 /-
@@ -1042,11 +1069,13 @@ converting to `Nat`.  Zero must stay `bz` (we do not want a leading zero digit):
     binDouble (b1 n) = b0 (b1 n)
 -/
 
-def binDouble : BinNat → BinNat := sorry
+def binDouble : BinNat → BinNat
+  | .bz => .bz
+  | b => b.b0
 
-example : binDouble .bz = .bz := by sorry
-example : binDouble (.b1 .bz) = .b0 (.b1 .bz) := by sorry
-example : binToNat (binDouble (.b1 (.b1 .bz))) = 6 := by sorry
+example : binDouble .bz = .bz := by rfl
+example : binDouble (.b1 .bz) = .b0 (.b1 .bz) := by rfl
+example : binToNat (binDouble (.b1 (.b1 .bz))) = 6 := by rfl
 
 
 /-
@@ -1060,7 +1089,10 @@ Hint: no induction is needed.  There are three constructors, so use `cases`.
 
 theorem binToNat_binDouble (b : BinNat) :
     binToNat (binDouble b) = 2 * binToNat b := by
-  sorry
+    cases b with
+    | bz => rfl
+    | b0 b' => rfl
+    | b1 b' => rfl
 
 /-
 ### Task 7: Correctness of binary increment (2)
@@ -1088,7 +1120,18 @@ does not replace the induction.
 
 theorem binToNat_binIncr (b : BinNat) :
     binToNat (binIncr b) = binToNat b + 1 := by
-  sorry
+  induction b with
+  | bz => rfl
+  | b0 b' =>
+    --rw [<- natToBin_succ]
+    rw [binIncr]
+    simp [binToNat]
+    rw [Nat.add_comm]
+  | b1 b' ih =>
+    rw [binIncr]
+    rw [binToNat]
+    rw [binToNat]
+    omega
 
 
 /-
@@ -1104,8 +1147,12 @@ Hint: induction on `n`.  The successor case needs `natToBin_succ`,
 -/
 
 theorem binToNat_natToBin (n : Nat) : binToNat (natToBin n) = n := by
-  sorry
-
+  induction n with
+  | zero => rfl
+  | succ k ih =>
+    simp [natToBin]
+    rw [binToNat_binIncr]
+    rw [ih]
 
 /-
 ### Task 9: Normalizing a binary number
@@ -1122,6 +1169,7 @@ meaning the composition `natToBin ∘ binToNat` is not the identity.
 
 def normalize (b : BinNat) : BinNat := natToBin (binToNat b)
 
+
 /-
 It serves nonetheless as a "normalizing" function that given a binary
 number produces its canonical representation, where the number
@@ -1131,12 +1179,12 @@ Replace the `sorry`'s below with `rfl` to check that your `normalize`
 behaves correctly.
 -/
 
-example : normalize bz.b0 = bz := by sorry
-example : normalize bz.b0.b0.b0.b1 = bz.b1 := by sorry
-example : normalize six = six := by sorry
+example : normalize bz.b0 = bz := by rfl
+example : normalize bz.b0.b0.b0.b1 = bz.b1 := by rfl
+example : normalize six = six := by rfl
 
-example : binToNat (normalize bz.b0.b0.b0.b1) = 1 := by sorry
-example : binToNat (normalize six) = 9 := by sorry
+example : binToNat (normalize bz.b0.b0.b0.b1) = 1 := by rfl
+example : binToNat (normalize six) = 6 := by rfl
 
 /-
 We can define a function that tests if a binary number has one or more
@@ -1173,7 +1221,11 @@ Hint: induction not necessary, simplify by the definitions `binDouble` and `binI
 -/
 theorem binIncr_binDouble (b : BinNat) :
     binDouble (binIncr b) = binIncr (binIncr (binDouble b)) := by
-  sorry
+  cases b with
+  | bz => rfl
+  | b0 b' => rfl
+  | b1 b' => rfl
+
 
 
 /-
@@ -1188,7 +1240,13 @@ and `natToBin`, then rewrite with the IH and `binIncr_binDouble`.
 -/
 theorem binDouble_binToNat (n : Nat) :
     binDouble (natToBin n) = natToBin (2 * n) := by
-  sorry
+  induction n with
+  | zero => rfl
+  | succ k ih =>
+    simp [Nat.mul_succ, natToBin]
+    rw [<- ih]
+    rw [binIncr_binDouble]
+
 
 
 /-
@@ -1202,7 +1260,10 @@ This will help you prove one of the inductive cases of the boss theorem.
 
 theorem binDouble_hasLeadingZeros (b : BinNat) :
     hasLeadingZeros (binDouble b) = hasLeadingZeros b := by
-  sorry
+  cases b with
+  | bz => rfl
+  | b0 b' => rfl
+  | b1 b' => rfl
 
 
 /-
@@ -1225,7 +1286,29 @@ Hints:
 
 theorem normalize_smallest (b : BinNat) :
     hasLeadingZeros (normalize b) = false := by
-  sorry
-
+  induction b with
+  | bz => rfl
+  | b0 b' ih =>
+    rw [normalize] at ih
+    rw [normalize]
+    rw [binToNat]
+    rw [<- binDouble_binToNat]
+    rw [binDouble_hasLeadingZeros]
+    exact ih
+  | b1 b' ih =>
+    rw [normalize] at ih
+    rw [normalize, binToNat]
+    rw [Nat.add_comm]
+    rw [natToBin_succ]
+    rw [<- binDouble_binToNat]
+    cases eq : natToBin (binToNat b') with
+    | bz =>
+      rfl
+    | b0 k =>
+      rw [eq] at ih
+      exact ih
+    | b1 k =>
+      rw [eq] at ih
+      exact ih
 
 end Binary_numbers
